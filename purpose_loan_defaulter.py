@@ -317,6 +317,23 @@ with tab5:
         fig.add_shape(type='line', line=dict(dash='dash'), x0=0, x1=1, y0=1, y1=0)
         st.plotly_chart(fig)
 
+    if model_option == "Random Forest" or model_option == "XGBoost":
+        model.fit(X_train_scaled, y_train)
+        trained_model = model
+        y_pred = model.predict_proba(X_train_scaled)[:, 1]
+        st.write(f"Model {model_option} trained successfully!")
+
+        # Display Feature Importance (only for Random Forest and XGBoost)
+        feature_names = train_df.drop('target', axis=1).columns  # Adjust as needed
+        importances = trained_model.feature_importances_
+        sorted_indices = np.argsort(importances)[::-1]
+
+        # Convert to Pandas DataFrame for easier plotting
+        df_importances = pd.DataFrame({'feature': feature_names[sorted_indices], 'importance': importances[sorted_indices]})
+        fig = px.bar(df_importances, x='importance', y='feature', orientation='h')
+        fig.update_layout(title='Feature Importances', xaxis_title='Importance', yaxis_title='Features')
+        st.plotly_chart(fig, use_container_width=True)
+
     # Button to save the trained model
     if st.button("Save Trained Model"):
         filename = st.text_input("Enter filename to save the model", value="trained_model.pkl")
