@@ -212,7 +212,13 @@ with tab4:
 with tab5:
     st.header("Model Training")
     
-
+    # Splitting Data into Training and Validation
+    st.subheader("Data Splitting")
+    train_size = st.slider("Select Training Dataset Size", 0.1, 0.9, 0.7)
+    X_train, X_val, y_train, y_val = train_test_split(train_df.drop('target', axis=1), 
+                                                      train_df['target'], 
+                                                      train_size=train_size)
+    
     # Data Scaling
     st.subheader("Data Scaling")
     scale_option = st.selectbox("Choose a scaling method", 
@@ -225,12 +231,11 @@ with tab5:
                   "MaxAbs Scaler": MaxAbsScaler(), 
                   "Robust Scaler": RobustScaler(), 
                   "Normalizer": Normalizer()}[scale_option]
-        X_train_scaled = scaler.fit_transform(train_df.drop('target', axis=1))
-        y_train = train_df['target']
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
     else:
-        X_train_scaled = train_df.drop('target', axis=1)
-        y_train = train_df['target']
-
+        X_train_scaled = X_train
+        X_val_scaled = X_val
 
     # Model Selection
     st.subheader("Model Selection")
@@ -289,31 +294,32 @@ with tab5:
         y_pred = model.predict_proba(X_train_scaled)[:, 1]
         st.write(f"Model {model_option} trained successfully!")
 
-    # Display metrics
+    # Validation metrics
     if not is_statsmodels:
-        y_pred_label = (y_pred > 0.5).astype(int)
-        accuracy = accuracy_score(y_train, y_pred_label)
-        st.write(f"Accuracy: {accuracy:.2f}")
+        y_val_pred = trained_model.predict_proba(X_val_scaled)[:, 1]
+        y_val_pred_label = (y_val_pred > 0.5).astype(int)
+        val_accuracy = accuracy_score(y_val, y_val_pred_label)
+        st.write(f"Validation Accuracy: {val_accuracy:.2f}")
 
-        # Confusion Matrix
-        cm = confusion_matrix(y_train, y_pred_label)
+        # Validation Confusion Matrix
+        cm_val = confusion_matrix(y_val, y_val_pred_label)
         fig, ax = plt.subplots()
-        sns.heatmap(cm, annot=True, fmt="d", ax=ax, cmap="Blues")
-        ax.set_title("Confusion Matrix")
+        sns.heatmap(cm_val, annot=True, fmt="d", ax=ax, cmap="Blues")
+        ax.set_title("Validation Confusion Matrix")
         ax.set_xlabel("Predicted Label")
         ax.set_ylabel("True Label")
         st.pyplot(fig)
 
-        # ROC Curve
-        fpr, tpr, _ = roc_curve(y_train, y_pred)
-        fig = px.area(x=fpr, y=tpr, title=f'ROC Curve (AUC={roc_auc_score(y_train, y_pred):.4f})',
-                        labels=dict(x='False Positive Rate', y='True Positive Rate'), width=700, height=500)
+        # Validation ROC Curve
+        fpr_val, tpr_val, _ = roc_curve(y_val, y_val_pred)
+        fig = px.area(x=fpr_val, y=tpr_val, title=f'Validation ROC Curve (AUC={roc_auc_score(y_val, y_val_pred):.4f})',
+                      labels=dict(x='False Positive Rate', y='True Positive Rate'), width=700, height=500)
         fig.add_shape(type='line', line=dict(dash='dash'), x0=0, x1=1, y0=0, y1=1)
         st.plotly_chart(fig)
 
-        # Precision-Recall Curve
-        precision, recall, _ = precision_recall_curve(y_train, y_pred)
-        fig = px.area(x=recall, y=precision, title='Precision-Recall Curve', labels=dict(x='Recall', y='Precision'), width=700, height=500)
+        # Validation Precision-Recall Curve
+        precision_val, recall_val, _ = precision_recall_curve(y_val, y_val_pred)
+        fig = px.area(x=recall_val, y=precision_val, title='Validation Precision-Recall Curve', labels=dict(x='Recall', y='Precision'), width=700, height=500)
         fig.add_shape(type='line', line=dict(dash='dash'), x0=0, x1=1, y0=1, y1=0)
         st.plotly_chart(fig)
 
