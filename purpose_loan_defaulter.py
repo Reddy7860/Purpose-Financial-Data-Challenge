@@ -29,6 +29,10 @@ def load_data():
     test_data = pd.read_csv('test.csv')
     return train_data, test_data
 
+# Function to reset data to original
+def reset_data():
+    st.session_state['train_df'], st.session_state['test_df'] = load_data()
+
 # Initialize session state for train and test data
 if 'train_df' not in st.session_state or 'test_df' not in st.session_state:
     st.session_state['train_df'], st.session_state['test_df'] = load_data()
@@ -66,6 +70,11 @@ with tab1:
     # Display data types
     if st.checkbox('Show data types of training data'):
         st.write(train_df.dtypes)
+
+    # Button to reset data
+    if st.button('Reset to Original Data'):
+        reset_data()
+        st.experimental_rerun()
 
     # Add more code for data exploration (e.g., visualizations)
 
